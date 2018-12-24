@@ -1,10 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"html/template"
+	"io/ioutil"
 	"log"
 	"os"
+	"path"
+	"path/filepath"
+	"strings"
 
 	git "gopkg.in/src-d/go-git.v4"
 
@@ -17,6 +23,16 @@ func main() {
 	// Get current users home folder
 	//
 	polarisHome, polarisConfig := config.GetConfig()
+	needSync, err := repo.NeedSynchronizeRepositories(polarisHome, polarisConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if needSync {
+		err := repo.SynchronizeRepositories(polarisHome, polarisConfig, false)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	app := cli.NewApp()
 	app.Commands = []cli.Command{
@@ -110,11 +126,8 @@ func main() {
 							Action: func(c *cli.Context) error {
 
 								err := repo.SynchronizeRepositories(polarisHome, polarisConfig, c.Bool("force"))
-								if err != nil {
-									log.Fatal(err)
-								}
 
-								return nil
+								return err
 							},
 						},
 					},
@@ -123,15 +136,138 @@ func main() {
 					Name:  "list",
 					Usage: "List available scaffolds in all repositories",
 					Action: func(c *cli.Context) error {
-						fmt.Println("Listing scaffolds...")
+
+						scaffolds, err := repo.ListScaffolds(polarisHome, polarisConfig)
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						for name, detail := range scaffolds {
+							fmt.Println(name, "->", detail.Spec.Description)
+						}
+
 						return nil
+					},
+				},
+				{
+					Name:      "describe",
+					ArgsUsage: "<NAME>",
+					Usage:     "Describe a scaffold",
+					Action: func(c *cli.Context) error {
+						if c.NArg() != 1 {
+							cli.ShowCommandHelp(c, "describe")
+							return errors.New("Invalid number of arguments")
+						}
+						scaffoldName := c.Args().Get(0)
+
+						scaffold, err := repo.GetScaffold(polarisHome, polarisConfig, scaffoldName)
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						fmt.Println("Name:", scaffoldName)
+						fmt.Println("Description:", scaffold.Spec.Description)
+						fmt.Println("Help:", scaffold.Spec.Help)
+						fmt.Println("Parameters:")
+						for _, param := range scaffold.Spec.Parameters {
+							fmt.Println(" -", param.Name, "type", param.Type)
+						}
+
+						return nil
+					},
+				},
+				{
+					Name:      "unpack",
+					ArgsUsage: "<scaffold name> <local name> [parameters]",
+					Usage:     "Unpack and deploy a scaffold locally",
+					Action: func(c *cli.Context) error {
+						if c.NArg() != 2 {
+							cli.ShowCommandHelp(c, "unpack")
+							return errors.New("Invalid number of arguments")
+						}
+
+						scaffoldName := c.Args().Get(0)
+						localName := c.Args().Get(1)
+
+						scaffold, err := repo.GetScaffold(polarisHome, polarisConfig, scaffoldName)
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						// Check whether the local path already exists
+						//
+						localName = path.Clean(localName)
+						if _, err := os.Stat(localName); !os.IsNotExist(err) {
+							return fmt.Errorf("%s already exists", localName)
+						}
+
+						unpackApp := cli.NewApp()
+
+						unpackApp.Flags = []cli.Flag{}
+						for _, param := range scaffold.Spec.Parameters {
+							flag := cli.StringFlag{
+								Name: param.Name,
+							}
+							unpackApp.Flags = append(unpackApp.Flags, flag)
+						}
+
+						unpackApp.Action = func(c2 *cli.Context) error {
+							fmt.Println("Do the stuff here with some args hopefully")
+
+							for _, param := range scaffold.Spec.Parameters {
+								fmt.Println("Got param", param.Name, c2.String(param.Name))
+							}
+
+							project := config.PolarisScaffoldProject{
+								Name:       localName,
+								Parameters: map[string]string{},
+							}
+
+							err = filepath.Walk(scaffold.LocalPath, func(filename string, info os.FileInfo, err error) error {
+								localPath := fmt.Sprintf("%s%s", localName, strings.Replace(filename, fmt.Sprintf("%s", scaffold.LocalPath), "", 1))
+
+								if info.IsDir() {
+									os.Mkdir(localPath, os.ModePerm)
+								} else {
+
+									fileContents, err := ioutil.ReadFile(filename)
+									if err != nil {
+										return err
+									}
+
+									tmpl, err := template.
+										New("PolarisScaffoldTemplate").
+										Funcs(template.FuncMap{}).
+										Delims("[[", "]]").
+										Parse(string(fileContents))
+									if err != nil {
+										return err
+									}
+									var buff bytes.Buffer
+
+									err = tmpl.Execute(&buff, project)
+
+									ioutil.WriteFile(localPath, buff.Bytes(), 0644)
+
+									fmt.Println(filename, localPath)
+								}
+
+								return nil
+							})
+
+							return nil
+						}
+
+						err = unpackApp.Run(c.Args())
+
+						return err
 					},
 				},
 			},
 		},
 	}
 
-	err := app.Run(os.Args)
+	err = app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}

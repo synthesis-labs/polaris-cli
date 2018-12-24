@@ -77,6 +77,9 @@ func GetConfig() (string, *PolarisConfig) {
 		log.Fatal(err)
 	}
 
+	// If any of the repositories have not been synced for a while - then resync them
+	//
+
 	return polarisHome, &polarisConfig
 }
 
