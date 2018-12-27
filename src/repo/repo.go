@@ -63,7 +63,7 @@ func SynchronizeRepositories(polarisHome string, polarisConfig *config.PolarisCo
 			if err != nil {
 				return err
 			}
-			err = worktree.Pull(&git.PullOptions{RemoteName: "origin"})
+			err = worktree.Pull(&git.PullOptions{RemoteName: "origin", ReferenceName: plumbing.ReferenceName(repoConfig.Ref)})
 			if err == git.NoErrAlreadyUpToDate {
 				fmt.Println(" .. already up to date")
 			} else if err != nil {
