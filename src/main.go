@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	git "gopkg.in/src-d/go-git.v4"
 
@@ -170,7 +170,7 @@ func main() {
 						fmt.Println("Help:", scaffold.Spec.Help)
 						fmt.Println("Parameters:")
 						for _, param := range scaffold.Spec.Parameters {
-							fmt.Println(" -", param.Name, "type", param.Type)
+							fmt.Println(" -", param.Name, "default", param.Default)
 						}
 
 						return nil
@@ -178,8 +178,11 @@ func main() {
 				},
 				{
 					Name:      "unpack",
-					ArgsUsage: "<scaffold name> <local name> [parameters]",
+					ArgsUsage: "<scaffold name> <local name> [--parameters name=value,name2=value2]",
 					Usage:     "Unpack and deploy a scaffold locally",
+					Flags: []cli.Flag{
+						cli.StringFlag{Name: "parameters", Usage: "Provide a template parameters"},
+					},
 					Action: func(c *cli.Context) error {
 						if c.NArg() != 2 {
 							cli.ShowCommandHelp(c, "unpack")
@@ -201,64 +204,98 @@ func main() {
 							return fmt.Errorf("%s already exists", localName)
 						}
 
-						unpackApp := cli.NewApp()
-
-						unpackApp.Flags = []cli.Flag{}
-						for _, param := range scaffold.Spec.Parameters {
-							flag := cli.StringFlag{
-								Name: param.Name,
-							}
-							unpackApp.Flags = append(unpackApp.Flags, flag)
+						// Setup the project object for use by the template later
+						//
+						project := config.PolarisScaffoldProject{
+							Name:       localName,
+							Parameters: map[string]string{},
+							Scaffold:   scaffold,
 						}
 
-						unpackApp.Action = func(c2 *cli.Context) error {
-							fmt.Println("Do the stuff here with some args hopefully")
+						// Populate all the scaffold default parameter values first
+						//
+						for _, parameter := range project.Scaffold.Spec.Parameters {
+							project.Parameters[parameter.Name] = parameter.Default
+						}
 
-							for _, param := range scaffold.Spec.Parameters {
-								fmt.Println("Got param", param.Name, c2.String(param.Name))
+						// Overwrite them with the ones provided on the command line
+						//
+						var parameters = c.String("parameters")
+						for _, parameter := range strings.Split(parameters, ",") {
+							split := strings.Split(parameter, "=")
+							if len(split) == 2 {
+								if _, contains := project.Parameters[split[0]]; !contains {
+									return fmt.Errorf("Parameter %s provided by not in scaffold spec", split[0])
+								}
+								project.Parameters[split[0]] = split[1]
+							}
+						}
+
+						for key, value := range project.Parameters {
+							fmt.Println("Got param", key, "->", value)
+						}
+
+						err = filepath.Walk(scaffold.LocalPath, func(filename string, info os.FileInfo, err error) error {
+
+							// filename -> file from the scaffold
+							// localPath -> file to be written (in the target)
+
+							localPath := fmt.Sprintf("%s%s", localName, strings.Replace(filename, fmt.Sprintf("%s", scaffold.LocalPath), "", 1))
+
+							// localPath could be a templated name, so we must render it
+							//
+							localPathTmpl, err := template.
+								New("PolarisFilenameTemplate").
+								Funcs(template.FuncMap{}).
+								Delims("[[", "]]").
+								Parse(string(localPath))
+							if err != nil {
+								fmt.Println("Error during template parsing", localPath)
+								return err
+							}
+							var localPathBuff bytes.Buffer
+
+							err = localPathTmpl.Execute(&localPathBuff, project)
+							if err != nil {
+								return fmt.Errorf("Error during filename template generation: %s", err)
 							}
 
-							project := config.PolarisScaffoldProject{
-								Name:       localName,
-								Parameters: map[string]string{},
-							}
+							// Set the name to whatever the template rendered
+							//
+							localPath = localPathBuff.String()
 
-							err = filepath.Walk(scaffold.LocalPath, func(filename string, info os.FileInfo, err error) error {
-								localPath := fmt.Sprintf("%s%s", localName, strings.Replace(filename, fmt.Sprintf("%s", scaffold.LocalPath), "", 1))
+							if info.IsDir() {
+								os.Mkdir(localPath, os.ModePerm)
+								fmt.Println("Created directory", localPath)
+							} else {
 
-								if info.IsDir() {
-									os.Mkdir(localPath, os.ModePerm)
-								} else {
-
-									fileContents, err := ioutil.ReadFile(filename)
-									if err != nil {
-										return err
-									}
-
-									tmpl, err := template.
-										New("PolarisScaffoldTemplate").
-										Funcs(template.FuncMap{}).
-										Delims("[[", "]]").
-										Parse(string(fileContents))
-									if err != nil {
-										return err
-									}
-									var buff bytes.Buffer
-
-									err = tmpl.Execute(&buff, project)
-
-									ioutil.WriteFile(localPath, buff.Bytes(), 0644)
-
-									fmt.Println(filename, localPath)
+								fileContents, err := ioutil.ReadFile(filename)
+								if err != nil {
+									return err
 								}
 
-								return nil
-							})
+								tmpl, err := template.
+									New("PolarisScaffoldTemplate").
+									Funcs(template.FuncMap{}).
+									Delims("[[", "]]").
+									Parse(string(fileContents))
+								if err != nil {
+									fmt.Println("Error during template parsing", localPath)
+									return err
+								}
+								var buff bytes.Buffer
+
+								err = tmpl.Execute(&buff, project)
+								if err != nil {
+									return fmt.Errorf("Error during template generation: %s", err)
+								}
+
+								ioutil.WriteFile(localPath, buff.Bytes(), 0644)
+								fmt.Println("Wrote file", filename, localPath)
+							}
 
 							return nil
-						}
-
-						err = unpackApp.Run(c.Args())
+						})
 
 						return err
 					},

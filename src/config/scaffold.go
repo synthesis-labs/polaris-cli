@@ -3,8 +3,8 @@ package config
 // PolarisScaffoldParameter holds a parameter
 //
 type PolarisScaffoldParameter struct {
-	Name string
-	Type string
+	Name    string
+	Default string
 }
 
 // PolarisScaffoldSpec defines a scaffold spec
@@ -27,4 +27,5 @@ type PolarisScaffold struct {
 type PolarisScaffoldProject struct {
 	Name       string
 	Parameters map[string]string
+	Scaffold   *PolarisScaffold
 }
