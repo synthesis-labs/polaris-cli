@@ -134,6 +134,7 @@ func ListScaffolds(polarisHome string, polarisConfig *config.PolarisConfig, matc
 				return err
 			}
 
+			scaffold.Name = scaffoldName
 			scaffold.LocalPath = path.Dir(filename)
 			found := len(matchingNames) == 0
 			for _, matching := range matchingNames {

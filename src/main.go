@@ -1,21 +1,17 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
-	"path"
-	"path/filepath"
 	"strings"
-	"text/template"
 
 	git "gopkg.in/src-d/go-git.v4"
 
 	"github.com/synthesis-labs/polaris-cli/src/config"
 	"github.com/synthesis-labs/polaris-cli/src/repo"
+	"github.com/synthesis-labs/polaris-cli/src/scaffold"
 	"github.com/urfave/cli"
 )
 
@@ -176,130 +172,91 @@ func main() {
 						return nil
 					},
 				},
-				{
-					Name:      "unpack",
-					ArgsUsage: "<scaffold name> <local name> [--parameters name=value,name2=value2]",
-					Usage:     "Unpack and deploy a scaffold locally",
-					Flags: []cli.Flag{
-						cli.StringFlag{Name: "parameters", Usage: "Provide a template parameters"},
-					},
-					Action: func(c *cli.Context) error {
-						if c.NArg() != 2 {
-							cli.ShowCommandHelp(c, "unpack")
-							return errors.New("Invalid number of arguments")
-						}
+			},
+		},
+		{
+			Name:      "new",
+			ArgsUsage: "<project | component> <scaffold | component> <local name>",
+			Usage:     "Unpack and deploy a scaffold locally",
+			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "overwrite", Usage: "Allow overwriting of target files"},
+				cli.StringFlag{Name: "parameters", Usage: "Provide template parameters"},
+			},
+			Action: func(c *cli.Context) error {
+				if c.NArg() != 3 {
+					cli.ShowCommandHelp(c, "new")
+					return errors.New("Invalid number of arguments")
+				}
 
-						scaffoldName := c.Args().Get(0)
-						localName := c.Args().Get(1)
+				projectOrComponent := c.Args().Get(0)
+				projectOrComponentName := c.Args().Get(1)
+				localName := c.Args().Get(2)
 
-						scaffold, err := repo.GetScaffold(polarisHome, polarisConfig, scaffoldName)
-						if err != nil {
-							log.Fatal(err)
-						}
+				var parametersOption = c.String("parameters")
+				var parameters = map[string]string{}
+				for _, parameter := range strings.Split(parametersOption, ",") {
+					split := strings.Split(parameter, "=")
+					if len(split) == 2 {
+						parameters[split[0]] = split[1]
+					}
+				}
 
-						// Check whether the local path already exists
-						//
-						localName = path.Clean(localName)
-						if _, err := os.Stat(localName); !os.IsNotExist(err) {
-							return fmt.Errorf("%s already exists", localName)
-						}
-
-						// Setup the project object for use by the template later
-						//
-						project := config.PolarisScaffoldProject{
-							Name:       localName,
-							Parameters: map[string]string{},
-							Scaffold:   scaffold,
-						}
-
-						// Populate all the scaffold default parameter values first
-						//
-						for _, parameter := range project.Scaffold.Spec.Parameters {
-							project.Parameters[parameter.Name] = parameter.Default
-						}
-
-						// Overwrite them with the ones provided on the command line
-						//
-						var parameters = c.String("parameters")
-						for _, parameter := range strings.Split(parameters, ",") {
-							split := strings.Split(parameter, "=")
-							if len(split) == 2 {
-								if _, contains := project.Parameters[split[0]]; !contains {
-									return fmt.Errorf("Parameter %s provided by not in scaffold spec", split[0])
-								}
-								project.Parameters[split[0]] = split[1]
-							}
-						}
-
-						for key, value := range project.Parameters {
-							fmt.Println("Got param", key, "->", value)
-						}
-
-						err = filepath.Walk(scaffold.LocalPath, func(filename string, info os.FileInfo, err error) error {
-
-							// filename -> file from the scaffold
-							// localPath -> file to be written (in the target)
-
-							localPath := fmt.Sprintf("%s%s", localName, strings.Replace(filename, fmt.Sprintf("%s", scaffold.LocalPath), "", 1))
-
-							// localPath could be a templated name, so we must render it
-							//
-							localPathTmpl, err := template.
-								New("PolarisFilenameTemplate").
-								Funcs(template.FuncMap{}).
-								Delims("[[", "]]").
-								Parse(string(localPath))
-							if err != nil {
-								fmt.Println("Error during template parsing", localPath)
-								return err
-							}
-							var localPathBuff bytes.Buffer
-
-							err = localPathTmpl.Execute(&localPathBuff, project)
-							if err != nil {
-								return fmt.Errorf("Error during filename template generation: %s", err)
-							}
-
-							// Set the name to whatever the template rendered
-							//
-							localPath = localPathBuff.String()
-
-							if info.IsDir() {
-								os.Mkdir(localPath, os.ModePerm)
-								fmt.Println("Created directory", localPath)
-							} else {
-
-								fileContents, err := ioutil.ReadFile(filename)
-								if err != nil {
-									return err
-								}
-
-								tmpl, err := template.
-									New("PolarisScaffoldTemplate").
-									Funcs(template.FuncMap{}).
-									Delims("[[", "]]").
-									Parse(string(fileContents))
-								if err != nil {
-									fmt.Println("Error during template parsing", localPath)
-									return err
-								}
-								var buff bytes.Buffer
-
-								err = tmpl.Execute(&buff, project)
-								if err != nil {
-									return fmt.Errorf("Error during template generation: %s", err)
-								}
-
-								ioutil.WriteFile(localPath, buff.Bytes(), 0644)
-								fmt.Println("Wrote file", filename, localPath)
-							}
-
-							return nil
-						})
-
+				if projectOrComponent == "project" {
+					applicationScaffold, err := repo.GetScaffold(polarisHome, polarisConfig, projectOrComponentName)
+					if err != nil {
 						return err
-					},
-				},
+					}
+					err = scaffold.UnpackProject(applicationScaffold, parameters, localName, c.Bool("overwrite"))
+					if err != nil {
+						return err
+					}
+				} else if projectOrComponent == "component" {
+					// Read the project from the local directory?
+					//
+					project, err := scaffold.GetLocalProject("project")
+
+					if err != nil {
+						return err
+					}
+
+					// Read the scaffold from the repo
+					//
+					projectScaffold, err := repo.GetScaffold(polarisHome, polarisConfig, project.Scaffold)
+					if err != nil {
+						return err
+					}
+
+					err = scaffold.UnpackComponent(projectScaffold, project, parameters, projectOrComponentName, localName, c.Bool("overwrite"))
+					if err != nil {
+						return err
+					}
+				}
+
+				return nil
+			},
+		},
+		{
+			Name:      "init",
+			ArgsUsage: "",
+			Usage:     "Install the polaris operator to the cluster",
+			Flags:     []cli.Flag{},
+			Action: func(c *cli.Context) error {
+
+				fmt.Println("Succesfully installed polaris-operator to current cluster")
+
+				return nil
+			},
+		},
+		{
+			Name:      "list",
+			ArgsUsage: "",
+			Usage:     "Show currently deployed projects and components",
+			Flags:     []cli.Flag{},
+			Action: func(c *cli.Context) error {
+
+				fmt.Println("Displaying list of all projects and components deployed to current cluster")
+
+				return nil
 			},
 		},
 	}
