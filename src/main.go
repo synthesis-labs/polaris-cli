@@ -9,6 +9,7 @@ import (
 
 	git "gopkg.in/src-d/go-git.v4"
 
+	"github.com/synthesis-labs/polaris-cli/src/cluster"
 	"github.com/synthesis-labs/polaris-cli/src/config"
 	"github.com/synthesis-labs/polaris-cli/src/repo"
 	"github.com/synthesis-labs/polaris-cli/src/scaffold"
@@ -239,11 +240,33 @@ func main() {
 			Name:      "init",
 			ArgsUsage: "",
 			Usage:     "Install the polaris operator to the cluster",
-			Flags:     []cli.Flag{},
+			Flags: []cli.Flag{
+				cli.StringFlag{Name: "namespace", Usage: "Namespace to use"},
+			},
 			Action: func(c *cli.Context) error {
 
-				fmt.Println("Succesfully installed polaris-operator to current cluster")
+				// Connect
+				//
+				client, apiextensionsClient, ns, err := cluster.ConnectToCluster()
 
+				// Check if namespace is overridden on cmdline (otherwise use the default configured one)
+				//
+				if c.String("namespace") != "" {
+					ns = c.String("namespace")
+				}
+
+				if err != nil {
+					return err
+				}
+
+				// Find the polaris-operator in the list of pods
+				//
+				err = cluster.GetPolarisOperator(client, apiextensionsClient, ns)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println("Succesfully installed polaris-operator to current cluster")
 				return nil
 			},
 		},
