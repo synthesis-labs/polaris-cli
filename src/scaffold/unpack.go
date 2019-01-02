@@ -3,12 +3,12 @@ package scaffold
 import (
 	"bytes"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/synthesis-labs/polaris-cli/src/config"
 	yaml "gopkg.in/yaml.v2"
