@@ -181,7 +181,7 @@ func main() {
 					ArgsUsage: "<scaffold name> <local name> [--parameters name=value,name2=value2]",
 					Usage:     "Unpack and deploy a scaffold locally",
 					Flags: []cli.Flag{
-						cli.StringFlag{Name: "parameters", Usage: "Provide a template parameters"},
+						cli.StringFlag{Name: "parameters", Usage: "Provide template parameters"},
 					},
 					Action: func(c *cli.Context) error {
 						if c.NArg() != 2 {
