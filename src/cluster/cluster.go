@@ -80,7 +80,7 @@ func ConnectToCluster() (*kubernetes.Clientset, *apiextension.Clientset, string,
 }
 
 func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *apiextension.Clientset, namespace string) error {
-	// SERVICE ACCOUNT
+	// SERVICE ACCOUNT transcribed from the operator-sdk deploy/folder
 	//
 	serviceAccount := &v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -98,13 +98,67 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	}
 	fmt.Print("Done!\n")
 
-	// ROLE
+	// ROLE transcribed from the operator-sdk deploy/folder
 	//
 	role := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "polaris-operator",
 		},
 		Rules: []rbacv1.PolicyRule{
+			rbacv1.PolicyRule{
+				APIGroups: []string{
+					"",
+				},
+				Resources: []string{
+					"pods",
+					"services",
+					"endpoints",
+					"persistentvolumeclaims",
+					"events",
+					"configmaps",
+					"secrets",
+				},
+				Verbs: []string{
+					"*",
+				},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{
+					"",
+				},
+				Resources: []string{
+					"namespaces",
+				},
+				Verbs: []string{
+					"get",
+				},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{
+					"apps",
+				},
+				Resources: []string{
+					"deployments",
+					"daemonsets",
+					"replicasets",
+					"statefulsets",
+				},
+				Verbs: []string{
+					"*",
+				},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{
+					"monitoring.coreos.com",
+				},
+				Resources: []string{
+					"servicemonitors",
+				},
+				Verbs: []string{
+					"get",
+					"create",
+				},
+			},
 			rbacv1.PolicyRule{
 				APIGroups: []string{
 					"polaris.synthesis.co.za",
@@ -129,7 +183,7 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	}
 	fmt.Print("Done!\n")
 
-	// ROLEBINDING
+	// ROLEBINDING transcribed from the operator-sdk deploy/folder
 	//
 	roleBinding := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -159,7 +213,7 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	}
 	fmt.Print("Done!\n")
 
-	// CRD - polarisstacks.polaris.synthesis.co.za
+	// CRD - polarisstacks.polaris.synthesis.co.za transcribed from the operator-sdk deploy/folder
 	//
 	polarisStackCrd := &apiextensionv1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
@@ -203,7 +257,7 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	}
 	fmt.Print("Done!\n")
 
-	// CRD - polarissourcerepositories.polaris.synthesis.co.za
+	// CRD - polarissourcerepositories.polaris.synthesis.co.za transcribed from the operator-sdk deploy/folder
 	//
 	polarisSourceRepositoryCrd := &apiextensionv1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
@@ -247,7 +301,7 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	}
 	fmt.Print("Done!\n")
 
-	// CRD - polariscontainerregistries.polaris.synthesis.co.za
+	// CRD - polariscontainerregistries.polaris.synthesis.co.za transcribed from the operator-sdk deploy/folder
 	//
 	polarisContainerRegistryCrd := &apiextensionv1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
@@ -291,7 +345,7 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	}
 	fmt.Print("Done!\n")
 
-	// CRD - polariscontainerregistries.polaris.synthesis.co.za
+	// CRD - polariscontainerregistries.polaris.synthesis.co.za transcribed from the operator-sdk deploy/folder
 	//
 	polarisBuildPipelineCrd := &apiextensionv1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
@@ -335,7 +389,7 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	}
 	fmt.Print("Done!\n")
 
-	// DEPLOYMENT
+	// DEPLOYMENT - transcribed from the operator-sdk deploy/folder
 	//
 	var replicas int32 = 1
 	deployment := &appsv1.Deployment{
@@ -349,6 +403,9 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 					"name": "polaris-operator",
 				},
 			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: "Recreate",
+			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -360,7 +417,7 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 					Containers: []v1.Container{
 						v1.Container{
 							Name:            "polaris-operator",
-							Image:           "tomwells/polaris-operator",
+							Image:           "tomwells/polaris-operator:1.0.0",
 							ImagePullPolicy: "Always",
 							Ports: []v1.ContainerPort{
 								v1.ContainerPort{
