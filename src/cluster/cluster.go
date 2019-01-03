@@ -389,6 +389,50 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	}
 	fmt.Print("Done!\n")
 
+	// CRD - polarisbuildsteps.polaris.synthesis.co.za transcribed from the operator-sdk deploy/folder
+	//
+	polarisBuildStepCrd := &apiextensionv1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "polarisbuildsteps.polaris.synthesis.co.za",
+		},
+		Spec: apiextensionv1beta1.CustomResourceDefinitionSpec{
+			Group: "polaris.synthesis.co.za",
+			Names: apiextensionv1beta1.CustomResourceDefinitionNames{
+				Kind:     "PolarisBuildStep",
+				ListKind: "PolarisBuildStepList",
+				Plural:   "polarisbuildsteps",
+				Singular: "polarisbuildstep",
+				ShortNames: []string{
+					"pbs",
+					"step",
+					"steps",
+				},
+				Categories: []string{
+					"all",
+				},
+			},
+			Scope:   apiextensionv1beta1.NamespaceScoped,
+			Version: "v1alpha1",
+		},
+	}
+	fmt.Print("CustomResourceDefinition (polarisbuildsteps.polaris.synthesis.co.za) Creating... ")
+	_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisBuildStepCrd)
+	if k8serrors.IsAlreadyExists(err) {
+		fmt.Print("Deleting... ")
+		err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete("polarisbuildsteps.polaris.synthesis.co.za", &metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+		fmt.Print("Waiting... ")
+		time.Sleep(2 * time.Second)
+		fmt.Print("Creating... ")
+		_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisBuildStepCrd)
+	}
+	if err != nil {
+		return err
+	}
+	fmt.Print("Done!\n")
+
 	// DEPLOYMENT - transcribed from the operator-sdk deploy/folder
 	//
 	var replicas int32 = 1
