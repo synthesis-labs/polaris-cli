@@ -4,22 +4,25 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/synthesis-labs/polaris-cli/src/config"
 	yaml "gopkg.in/yaml.v2"
 )
 
 func searchRepoForBase(polarisHome string, polarisConfig *config.PolarisConfig, baseName string, matchingNames ...string) (map[string]*config.PolarisScaffold, error) {
-	reposHome := path.Clean(fmt.Sprintf("%s/repos", polarisHome))
+	reposHome := filepath.Clean(filepath.Join(polarisHome, "repos"))
 	result := map[string]*config.PolarisScaffold{}
 	err := filepath.Walk(reposHome, func(filename string, info os.FileInfo, err error) error {
-		filebase := path.Base(filename)
+		filebase := filepath.Base(filename)
 		if filebase == baseName {
-			scaffoldName := strings.Replace(strings.Replace(filename, fmt.Sprintf("%s/", reposHome), "", 1), fmt.Sprintf("/%s", baseName), "", 1)
 
+			filenameRelativeToRepo, err := filepath.Rel(reposHome, filename)
+			if err != nil {
+				return err
+			}
+
+			scaffoldName := filepath.ToSlash(filepath.Dir(filenameRelativeToRepo))
 			scaffoldData, err := ioutil.ReadFile(filename)
 			if err != nil {
 				return err
@@ -32,7 +35,7 @@ func searchRepoForBase(polarisHome string, polarisConfig *config.PolarisConfig, 
 			}
 
 			scaffold.Name = scaffoldName
-			scaffold.LocalPath = path.Dir(filename)
+			scaffold.LocalPath = filepath.Dir(filename)
 			found := len(matchingNames) == 0
 			for _, matching := range matchingNames {
 				if matching == scaffoldName {
