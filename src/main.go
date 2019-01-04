@@ -11,6 +11,7 @@ import (
 
 	"github.com/synthesis-labs/polaris-cli/src/cluster"
 	"github.com/synthesis-labs/polaris-cli/src/config"
+	"github.com/synthesis-labs/polaris-cli/src/options"
 	"github.com/synthesis-labs/polaris-cli/src/repo"
 	"github.com/synthesis-labs/polaris-cli/src/scaffold"
 	"github.com/urfave/cli"
@@ -38,9 +39,11 @@ func main() {
 			ArgsUsage: "",
 			Usage:     "Install the polaris operator to the cluster",
 			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
 				cli.StringFlag{Name: "namespace", Usage: "Namespace to use"},
 			},
 			Action: func(c *cli.Context) error {
+				options.SetVerbose(c.Bool("verbose"))
 
 				// Connect
 				//
@@ -74,7 +77,11 @@ func main() {
 				{
 					Name:  "list",
 					Usage: "List repositories configured",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
 					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
 						for repoName, repoConfig := range polarisConfig.Repositories {
 
 							// Open the repository
@@ -100,7 +107,11 @@ func main() {
 					Name:      "add",
 					Usage:     "Add a repository",
 					ArgsUsage: "<NAME> <URL> <Ref>",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
 					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
 						if c.NArg() != 3 {
 							cli.ShowCommandHelp(c, "add")
 							return errors.New("Invalid number of arguments")
@@ -126,7 +137,11 @@ func main() {
 					Name:      "remove",
 					Usage:     "Remove a repository",
 					ArgsUsage: "<NAME>",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
 					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
 						if c.NArg() != 1 {
 							cli.ShowCommandHelp(c, "remove")
 							return errors.New("Invalid number of arguments")
@@ -148,9 +163,11 @@ func main() {
 					Name:  "update",
 					Usage: "Update the scaffolds in all repositories",
 					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
 						cli.BoolFlag{Name: "force", Usage: "Force a full refresh"},
 					},
 					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
 
 						err := repo.SynchronizeRepositories(polarisHome, polarisConfig, c.Bool("force"))
 
@@ -166,8 +183,11 @@ func main() {
 				{
 					Name:  "list",
 					Usage: "List projects available to scaffold",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
 					Action: func(c *cli.Context) error {
-
+						options.SetVerbose(c.Bool("verbose"))
 						scaffolds, err := repo.ListProjects(polarisHome, polarisConfig)
 						if err != nil {
 							log.Fatal(err)
@@ -184,7 +204,11 @@ func main() {
 					Name:      "describe",
 					ArgsUsage: "<NAME>",
 					Usage:     "Describe a project",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
 					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
 						if c.NArg() != 1 {
 							cli.ShowCommandHelp(c, "describe")
 							return errors.New("Invalid number of arguments")
@@ -212,11 +236,13 @@ func main() {
 					ArgsUsage: "<local name>",
 					Usage:     "Unpack a project locally",
 					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
 						cli.StringFlag{Name: "from", Usage: "From which project upstream (default: core/stable/starter/project)"},
 						cli.BoolFlag{Name: "overwrite", Usage: "Allow overwriting of target files"},
 						cli.StringFlag{Name: "parameters", Usage: "Provide template parameters"},
 					},
 					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
 						if c.NArg() != 1 {
 							cli.ShowCommandHelp(c, "new")
 							return errors.New("Invalid number of arguments")
@@ -254,8 +280,11 @@ func main() {
 					Name:      "status",
 					ArgsUsage: "<local name>|.",
 					Usage:     "Show status of project",
-					Flags:     []cli.Flag{},
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
 					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
 						return nil
 					},
 				},

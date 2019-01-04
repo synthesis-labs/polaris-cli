@@ -10,6 +10,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/synthesis-labs/polaris-cli/src/options"
+
 	"github.com/synthesis-labs/polaris-cli/src/config"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -39,11 +41,13 @@ func unpackScaffold(polarisType string, scaffold *config.PolarisScaffold, scaffo
 
 		targetPath := fmt.Sprintf("%s%s", localPath, strings.Replace(sourcePath, fmt.Sprintf("%s", scaffold.LocalPath), "", 1))
 
-		//fmt.Println("scaffold.LocalPath", scaffold.LocalPath)
-		fmt.Println("--------------------")
-		fmt.Println("sourcePath", sourcePath)
-		fmt.Println("targetPath", targetPath)
-		fmt.Println("--------------------")
+		if options.IsVerbose() {
+			fmt.Println("scaffold.LocalPath", scaffold.LocalPath)
+			fmt.Println("--------------------")
+			fmt.Println("sourcePath", sourcePath)
+			fmt.Println("targetPath", targetPath)
+			fmt.Println("--------------------")
+		}
 
 		// targetPath could be a templated name, so we must render it
 		//
@@ -72,7 +76,9 @@ func unpackScaffold(polarisType string, scaffold *config.PolarisScaffold, scaffo
 			if err != nil {
 				return err
 			}
-			fmt.Println("Created directory", targetPath)
+			if options.IsVerbose() {
+				fmt.Println("Created directory", targetPath)
+			}
 		} else {
 
 			sourceContents, err := ioutil.ReadFile(sourcePath)
@@ -103,7 +109,9 @@ func unpackScaffold(polarisType string, scaffold *config.PolarisScaffold, scaffo
 			if err != nil {
 				return err
 			}
-			fmt.Println("Wrote file", sourcePath, targetPath)
+			if options.IsVerbose() {
+				fmt.Println("Wrote file", sourcePath, targetPath)
+			}
 		}
 
 		return nil
@@ -175,8 +183,10 @@ func UnpackProject(scaffold *config.PolarisScaffold, parameters map[string]strin
 
 	// Print them
 	//
-	for paramKey, paramValue := range project.Parameters {
-		fmt.Println("Project parameter", paramKey, paramValue)
+	if options.IsVerbose() {
+		for paramKey, paramValue := range project.Parameters {
+			fmt.Println("Project parameter", paramKey, paramValue)
+		}
 	}
 
 	err := unpackScaffold("project", scaffold, &project, localPath, overwrite)
@@ -205,21 +215,27 @@ func UnpackComponent(componentScaffold *config.PolarisScaffold, project *config.
 	// Populate all the scaffold default parameter values first
 	//
 	for _, parameter := range componentScaffold.Spec.Parameters {
-		fmt.Println("Got component spec param", parameter.Name)
+		if options.IsVerbose() {
+			fmt.Println("Got component spec param", parameter.Name)
+		}
 		component.Parameters[parameter.Name] = parameter.Default
 	}
 
 	// Overwrite them with the ones provided on the command line
 	//
 	for paramKey, paramValue := range parameters {
-		fmt.Println("Got component param", paramKey, "->", paramValue)
+		if options.IsVerbose() {
+			fmt.Println("Got component param", paramKey, "->", paramValue)
+		}
 		component.Parameters[paramKey] = paramValue
 	}
 
 	// Print them
 	//
-	for paramKey, paramValue := range component.Parameters {
-		fmt.Println("Component parameter", paramKey, paramValue)
+	if options.IsVerbose() {
+		for paramKey, paramValue := range component.Parameters {
+			fmt.Println("Component parameter", paramKey, paramValue)
+		}
 	}
 
 	err := unpackScaffold("", componentScaffold, &component, ".", overwrite)
