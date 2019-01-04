@@ -16,29 +16,34 @@ import (
 
 // unpackScaffold low level unpacking of a template from a repo to a local path
 //
-func unpackScaffold(polarisType string, scaffold *config.PolarisScaffold, scaffoldValues interface{}, repoPath string, localPath string, overwrite bool) error {
+func unpackScaffold(polarisType string, scaffold *config.PolarisScaffold, scaffoldValues interface{}, localPath string, overwrite bool) error {
 	// Clean paths
 	//
 	localPath = path.Clean(localPath)
-	repoPath = path.Clean(repoPath)
 
-	err := filepath.Walk(fmt.Sprintf("%s/%s/", scaffold.LocalPath, repoPath), func(sourcePath string, info os.FileInfo, err error) error {
+	err := filepath.Walk(fmt.Sprintf("%s/", scaffold.LocalPath), func(sourcePath string, info os.FileInfo, err error) error {
 
 		if err != nil {
 			fmt.Println(err)
 			return err
 		}
 
+		// Source files to ignore
+		//
+		if info.Name() == "polaris-project.yaml" || info.Name() == "polaris-component.yaml" {
+			return nil
+		}
+
 		// filename -> file from the scaffold
 		// targetPath -> file to be written (in the target)
 
-		targetPath := fmt.Sprintf("%s%s", localPath, strings.Replace(sourcePath, fmt.Sprintf("%s/%s", scaffold.LocalPath, repoPath), "", 1))
+		targetPath := fmt.Sprintf("%s%s", localPath, strings.Replace(sourcePath, fmt.Sprintf("%s", scaffold.LocalPath), "", 1))
 
 		//fmt.Println("scaffold.LocalPath", scaffold.LocalPath)
-		//fmt.Println("--------------------")
-		//fmt.Println("sourcePath", sourcePath)
-		//fmt.Println("targetPath", targetPath)
-		//fmt.Println("--------------------")
+		fmt.Println("--------------------")
+		fmt.Println("sourcePath", sourcePath)
+		fmt.Println("targetPath", targetPath)
+		fmt.Println("--------------------")
 
 		// targetPath could be a templated name, so we must render it
 		//
@@ -110,13 +115,15 @@ func unpackScaffold(polarisType string, scaffold *config.PolarisScaffold, scaffo
 		return err
 	}
 
-	// Write the values to the base/polaris.yaml
+	// Write the values to the base/polaris.yaml if the polaris-type is specified
 	//
-	projectMarshalled, err := yaml.Marshal(scaffoldValues)
-	if err != nil {
-		return err
+	if polarisType != "" {
+		projectMarshalled, err := yaml.Marshal(scaffoldValues)
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(fmt.Sprintf("%s/polaris-%s.yaml", localPath, polarisType), projectMarshalled, 0644)
 	}
-	err = ioutil.WriteFile(fmt.Sprintf("%s/polaris-%s.yaml", localPath, polarisType), projectMarshalled, 0644)
 
 	return err
 }
@@ -172,14 +179,14 @@ func UnpackProject(scaffold *config.PolarisScaffold, parameters map[string]strin
 		fmt.Println("Project parameter", paramKey, paramValue)
 	}
 
-	err := unpackScaffold("project", scaffold, &project, "project", localPath, overwrite)
+	err := unpackScaffold("project", scaffold, &project, localPath, overwrite)
 	return err
 
 }
 
 // UnpackComponent unpacks a Component scaffold into the local path
 //
-func UnpackComponent(scaffold *config.PolarisScaffold, project *config.PolarisProject, parameters map[string]string, componentName string, localPath string, overwrite bool) error {
+func UnpackComponent(componentScaffold *config.PolarisScaffold, project *config.PolarisProject, parameters map[string]string, componentName string, localPath string, overwrite bool) error {
 	// Clean paths
 	//
 	localName := path.Clean(localPath)
@@ -195,25 +202,9 @@ func UnpackComponent(scaffold *config.PolarisScaffold, project *config.PolarisPr
 		ComponentScaffold: componentName,
 	}
 
-	// Find the scaffoldComponent within the scaffold
-	//
-	var componentScaffold *config.PolarisScaffoldComponent
-	for _, searchComponentScaffold := range scaffold.Spec.Components {
-		if componentName == searchComponentScaffold.Name {
-			componentScaffold = &searchComponentScaffold
-			break
-		}
-	}
-
-	fmt.Println("Found component", componentScaffold.Name, "matching", componentName)
-
-	if componentScaffold == nil {
-		return fmt.Errorf("Unable to find component called %s within scaffold %s", componentName, scaffold.Name)
-	}
-
 	// Populate all the scaffold default parameter values first
 	//
-	for _, parameter := range componentScaffold.Parameters {
+	for _, parameter := range componentScaffold.Spec.Parameters {
 		fmt.Println("Got component spec param", parameter.Name)
 		component.Parameters[parameter.Name] = parameter.Default
 	}
@@ -231,6 +222,6 @@ func UnpackComponent(scaffold *config.PolarisScaffold, project *config.PolarisPr
 		fmt.Println("Component parameter", paramKey, paramValue)
 	}
 
-	err := unpackScaffold(fmt.Sprintf("component-%s-%s", componentName, localName), scaffold, &component, fmt.Sprintf("components/%s", componentName), ".", overwrite)
+	err := unpackScaffold("", componentScaffold, &component, ".", overwrite)
 	return err
 }
