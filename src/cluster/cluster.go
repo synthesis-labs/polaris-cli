@@ -79,7 +79,9 @@ func ConnectToCluster() (*kubernetes.Clientset, *apiextension.Clientset, string,
 	return clientset, apiextensionsClient, ns, err
 }
 
-func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *apiextension.Clientset, namespace string) error {
+// EnsureOperatorInstalled ensures and installs the operator plus whatever depedencies
+//
+func EnsureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *apiextension.Clientset, namespace string, environmentVariables map[string]string) error {
 	// SERVICE ACCOUNT transcribed from the operator-sdk deploy/folder
 	//
 	serviceAccount := &v1.ServiceAccount{
@@ -453,6 +455,7 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
+						"app":  "polaris",
 						"name": "polaris-operator",
 					},
 				},
@@ -513,7 +516,17 @@ func ensureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 			},
 		},
 	}
+
 	fmt.Print("Deployment Creating... ")
+
+	// Add additional environment variables provided
+	//
+	for k, v := range environmentVariables {
+		fmt.Println(" Adding variable", k, v)
+		newVar := v1.EnvVar{Name: k, Value: v}
+		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env, newVar)
+	}
+
 	_, err = client.AppsV1().Deployments(namespace).Create(deployment)
 	if k8serrors.IsAlreadyExists(err) {
 		fmt.Print("Updating... ")
@@ -544,10 +557,7 @@ func GetPolarisOperator(client *kubernetes.Clientset, apiextensionClient *apiext
 
 	if len(pods.Items) == 0 {
 		fmt.Println("Polaris operator not found. Installing now...")
-		err := ensureOperatorInstalled(client, apiextensionClient, namespace)
-		if err != nil {
-			return err
-		}
+
 	}
 
 	return nil

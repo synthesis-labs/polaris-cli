@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 
 	"github.com/synthesis-labs/polaris-cli/src/cluster"
 	"github.com/synthesis-labs/polaris-cli/src/config"
@@ -41,13 +43,16 @@ func main() {
 			Flags: []cli.Flag{
 				cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
 				cli.StringFlag{Name: "namespace", Usage: "Namespace to use"},
+				cli.StringFlag{Name: "AWS_ACCESS_KEY_ID", Usage: "Specify AWS_ACCESS_KEY_ID to the operator"},
+				cli.StringFlag{Name: "AWS_SECRET_ACCESS_KEY", Usage: "Specify AWS_SECRET_ACCESS_KEY to the operator"},
+				cli.StringFlag{Name: "AWS_SESSION_TOKEN", Usage: "Specify AWS_SESSION_TOKEN to the operator"},
 			},
 			Action: func(c *cli.Context) error {
 				options.SetVerbose(c.Bool("verbose"))
 
 				// Connect
 				//
-				client, apiextensionsClient, ns, err := cluster.ConnectToCluster()
+				client, apiextensionClient, ns, err := cluster.ConnectToCluster()
 
 				// Check if namespace is overridden on cmdline (otherwise use the default configured one)
 				//
@@ -59,9 +64,22 @@ func main() {
 					return err
 				}
 
-				// Find the polaris-operator in the list of pods
+				// Collect variables
 				//
-				err = cluster.GetPolarisOperator(client, apiextensionsClient, ns)
+				environmentVariables := map[string]string{}
+				if c.String("AWS_ACCESS_KEY_ID") != "" {
+					environmentVariables["AWS_ACCESS_KEY_ID"] = c.String("AWS_ACCESS_KEY_ID")
+				}
+				if c.String("AWS_SECRET_ACCESS_KEY") != "" {
+					environmentVariables["AWS_SECRET_ACCESS_KEY"] = c.String("AWS_SECRET_ACCESS_KEY")
+				}
+				if c.String("AWS_SESSION_TOKEN") != "" {
+					environmentVariables["AWS_SESSION_TOKEN"] = c.String("AWS_SESSION_TOKEN")
+				}
+
+				// Ensure the polaris-operator is installed
+				//
+				err = cluster.EnsureOperatorInstalled(client, apiextensionClient, ns, environmentVariables)
 				if err != nil {
 					return err
 				}
@@ -91,14 +109,32 @@ func main() {
 								log.Fatal(err)
 							}
 
-							headRef, err := repository.Head()
+							_, err = repository.Head()
 							if err != nil {
 								log.Fatal(err)
 							}
 
+							logIter, err := repository.Log(&git.LogOptions{})
+							if err != nil {
+								return err
+							}
+
+							// Get the head commit - Just get the first one and stop
+							//
+							var headCommit *object.Commit
+							logIter.ForEach(func(obj *object.Commit) error {
+								headCommit = obj
+								return storer.ErrStop
+							})
+
 							// Print whatever we need
 							//
-							fmt.Println(repoName, "->", repoConfig.URI, repoConfig.Ref, headRef.Hash().String()[:7])
+							fmt.Println(repoName, "->",
+								repoConfig.URI,
+								repoConfig.Ref,
+								"(", headCommit.Author.Name, ",", headCommit.Hash.String()[:7], ")")
+
+							//							fmt.Println(repoName, "->", , headCommit.Message[:15])
 						}
 						return nil
 					},
