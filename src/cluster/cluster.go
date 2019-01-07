@@ -8,6 +8,7 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
+	polarisv1alpha1 "github.com/synthesis-labs/polaris-operator/pkg/client/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -41,10 +42,10 @@ func getKubeConfig() (string, error) {
 
 // ConnectToCluster connects and returns the kubernetes client
 //
-func ConnectToCluster() (*kubernetes.Clientset, *apiextension.Clientset, string, error) {
+func ConnectToCluster() (*kubernetes.Clientset, *apiextension.Clientset, *polarisv1alpha1.Clientset, string, error) {
 	kubeConfigPath, err := getKubeConfig()
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, "", err
 	}
 
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
@@ -55,7 +56,7 @@ func ConnectToCluster() (*kubernetes.Clientset, *apiextension.Clientset, string,
 	)
 	config, err := clientConfig.ClientConfig()
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, "", err
 	}
 
 	// create the clientset
@@ -72,11 +73,18 @@ func ConnectToCluster() (*kubernetes.Clientset, *apiextension.Clientset, string,
 		panic(err.Error())
 	}
 
+	// create the polarisv1alpha1 client
+	//
+	polarisv1alpha1client, err := polarisv1alpha1.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	// Lookup the namespace we might be configured to
 	//
 	ns, _, _ := clientConfig.Namespace()
 
-	return clientset, apiextensionsClient, ns, err
+	return clientset, apiextensionsClient, polarisv1alpha1client, ns, err
 }
 
 // EnsureOperatorInstalled ensures and installs the operator plus whatever depedencies

@@ -16,6 +16,7 @@ import (
 	"github.com/synthesis-labs/polaris-cli/src/options"
 	"github.com/synthesis-labs/polaris-cli/src/repo"
 	"github.com/synthesis-labs/polaris-cli/src/scaffold"
+	"github.com/synthesis-labs/polaris-cli/src/status"
 	"github.com/urfave/cli"
 )
 
@@ -52,14 +53,13 @@ func main() {
 
 				// Connect
 				//
-				client, apiextensionClient, ns, err := cluster.ConnectToCluster()
+				client, apiextensionClient, _, ns, err := cluster.ConnectToCluster()
 
 				// Check if namespace is overridden on cmdline (otherwise use the default configured one)
 				//
 				if c.String("namespace") != "" {
 					ns = c.String("namespace")
 				}
-
 				if err != nil {
 					return err
 				}
@@ -318,9 +318,38 @@ func main() {
 					Usage:     "Show status of project",
 					Flags: []cli.Flag{
 						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+						cli.StringFlag{Name: "namespace", Usage: "Namespace to use"},
 					},
 					Action: func(c *cli.Context) error {
 						options.SetVerbose(c.Bool("verbose"))
+
+						// Read the project from the local directory? Otherwise it's an error
+						//
+						project, err := scaffold.GetLocalProject("project")
+						if err != nil {
+							return err
+						}
+
+						// Connect to cluster
+						//
+						client, apiextensionClient, polarisClient, ns, err := cluster.ConnectToCluster()
+
+						// Check if namespace is overridden on cmdline (otherwise use the default configured one)
+						//
+						if c.String("namespace") != "" {
+							ns = c.String("namespace")
+						}
+						if err != nil {
+							return err
+						}
+
+						// Query for stuff matching our selectors
+						//
+						err = status.PrintPolarisStatus(project.Project, client, apiextensionClient, polarisClient, ns)
+						if err != nil {
+							return err
+						}
+
 						return nil
 					},
 				},
