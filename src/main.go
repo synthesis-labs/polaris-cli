@@ -1,21 +1,19 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
-	"path"
-	"path/filepath"
 	"strings"
-	"text/template"
 
 	git "gopkg.in/src-d/go-git.v4"
 
+	"github.com/synthesis-labs/polaris-cli/src/cluster"
 	"github.com/synthesis-labs/polaris-cli/src/config"
+	"github.com/synthesis-labs/polaris-cli/src/options"
 	"github.com/synthesis-labs/polaris-cli/src/repo"
+	"github.com/synthesis-labs/polaris-cli/src/scaffold"
 	"github.com/urfave/cli"
 )
 
@@ -37,107 +35,160 @@ func main() {
 	app := cli.NewApp()
 	app.Commands = []cli.Command{
 		{
-			Name:  "scaffold",
-			Usage: "Scaffolding commands",
+			Name:      "init",
+			ArgsUsage: "",
+			Usage:     "Install the polaris operator to the cluster",
+			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+				cli.StringFlag{Name: "namespace", Usage: "Namespace to use"},
+			},
+			Action: func(c *cli.Context) error {
+				options.SetVerbose(c.Bool("verbose"))
+
+				// Connect
+				//
+				client, apiextensionsClient, ns, err := cluster.ConnectToCluster()
+
+				// Check if namespace is overridden on cmdline (otherwise use the default configured one)
+				//
+				if c.String("namespace") != "" {
+					ns = c.String("namespace")
+				}
+
+				if err != nil {
+					return err
+				}
+
+				// Find the polaris-operator in the list of pods
+				//
+				err = cluster.GetPolarisOperator(client, apiextensionsClient, ns)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println("Succesfully installed polaris-operator to current cluster")
+				return nil
+			},
+		},
+		{
+			Name:  "repo",
+			Usage: "Scaffolding repository management",
 			Subcommands: []cli.Command{
 				{
-					Name:  "repo",
-					Usage: "Scaffolding repository management",
-					Subcommands: []cli.Command{
-						{
-							Name:  "list",
-							Usage: "List repositories configured",
-							Action: func(c *cli.Context) error {
-								for repoName, repoConfig := range polarisConfig.Repositories {
+					Name:  "list",
+					Usage: "List repositories configured",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
+					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
+						for repoName, repoConfig := range polarisConfig.Repositories {
 
-									// Open the repository
-									//
-									repository, err := git.PlainOpen(fmt.Sprintf("%s/repos/%s", polarisHome, repoName))
-									if err != nil {
-										log.Fatal(err)
-									}
+							// Open the repository
+							//
+							repository, err := git.PlainOpen(fmt.Sprintf("%s/repos/%s", polarisHome, repoName))
+							if err != nil {
+								log.Fatal(err)
+							}
 
-									headRef, err := repository.Head()
-									if err != nil {
-										log.Fatal(err)
-									}
+							headRef, err := repository.Head()
+							if err != nil {
+								log.Fatal(err)
+							}
 
-									// Print whatever we need
-									//
-									fmt.Println(repoName, "->", repoConfig.URI, repoConfig.Ref, headRef.Hash().String()[:7])
-								}
-								return nil
-							},
-						},
-						{
-							Name:      "add",
-							Usage:     "Add a repository",
-							ArgsUsage: "<NAME> <URL> <Ref>",
-							Action: func(c *cli.Context) error {
-								if c.NArg() != 3 {
-									cli.ShowCommandHelp(c, "add")
-									return errors.New("Invalid number of arguments")
-								}
-								name := c.Args().Get(0)
-								url := c.Args().Get(1)
-								ref := c.Args().Get(2)
-
-								polarisConfig.Repositories[name] = config.PolarisRepository{
-									URI: url,
-									Ref: fmt.Sprintf("refs/heads/%s", ref),
-								}
-								config.SaveConfig(polarisHome, polarisConfig)
-
-								err := repo.SynchronizeRepositories(polarisHome, polarisConfig, false, name)
-								if err != nil {
-									log.Fatal(err)
-								}
-								return nil
-							},
-						},
-						{
-							Name:      "remove",
-							Usage:     "Remove a repository",
-							ArgsUsage: "<NAME>",
-							Action: func(c *cli.Context) error {
-								if c.NArg() != 1 {
-									cli.ShowCommandHelp(c, "remove")
-									return errors.New("Invalid number of arguments")
-								}
-								name := c.Args().Get(0)
-
-								delete(polarisConfig.Repositories, name)
-								config.SaveConfig(polarisHome, polarisConfig)
-
-								// Must delete repository too
-								//
-								reposHome := fmt.Sprintf("%s/repos/", polarisHome)
-								os.RemoveAll(fmt.Sprintf("%s/%s", reposHome, name))
-
-								return nil
-							},
-						},
-						{
-							Name:  "update",
-							Usage: "Update the scaffolds in all repositories",
-							Flags: []cli.Flag{
-								cli.BoolFlag{Name: "force", Usage: "Force a full refresh"},
-							},
-							Action: func(c *cli.Context) error {
-
-								err := repo.SynchronizeRepositories(polarisHome, polarisConfig, c.Bool("force"))
-
-								return err
-							},
-						},
+							// Print whatever we need
+							//
+							fmt.Println(repoName, "->", repoConfig.URI, repoConfig.Ref, headRef.Hash().String()[:7])
+						}
+						return nil
 					},
 				},
 				{
-					Name:  "list",
-					Usage: "List available scaffolds in all repositories",
+					Name:      "add",
+					Usage:     "Add a repository",
+					ArgsUsage: "<NAME> <URL> <Ref>",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
 					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
+						if c.NArg() != 3 {
+							cli.ShowCommandHelp(c, "add")
+							return errors.New("Invalid number of arguments")
+						}
+						name := c.Args().Get(0)
+						url := c.Args().Get(1)
+						ref := c.Args().Get(2)
 
-						scaffolds, err := repo.ListScaffolds(polarisHome, polarisConfig)
+						polarisConfig.Repositories[name] = config.PolarisRepository{
+							URI: url,
+							Ref: fmt.Sprintf("refs/heads/%s", ref),
+						}
+						config.SaveConfig(polarisHome, polarisConfig)
+
+						err := repo.SynchronizeRepositories(polarisHome, polarisConfig, false, name)
+						if err != nil {
+							log.Fatal(err)
+						}
+						return nil
+					},
+				},
+				{
+					Name:      "remove",
+					Usage:     "Remove a repository",
+					ArgsUsage: "<NAME>",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
+					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
+						if c.NArg() != 1 {
+							cli.ShowCommandHelp(c, "remove")
+							return errors.New("Invalid number of arguments")
+						}
+						name := c.Args().Get(0)
+
+						delete(polarisConfig.Repositories, name)
+						config.SaveConfig(polarisHome, polarisConfig)
+
+						// Must delete repository too
+						//
+						reposHome := fmt.Sprintf("%s/repos/", polarisHome)
+						os.RemoveAll(fmt.Sprintf("%s/%s", reposHome, name))
+
+						return nil
+					},
+				},
+				{
+					Name:  "update",
+					Usage: "Update the scaffolds in all repositories",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+						cli.BoolFlag{Name: "force", Usage: "Force a full refresh"},
+					},
+					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
+
+						err := repo.SynchronizeRepositories(polarisHome, polarisConfig, c.Bool("force"))
+
+						return err
+					},
+				},
+			},
+		},
+		{
+			Name:  "project",
+			Usage: "Project management",
+			Subcommands: []cli.Command{
+				{
+					Name:  "list",
+					Usage: "List projects available to scaffold",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
+					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
+						scaffolds, err := repo.ListProjects(polarisHome, polarisConfig)
 						if err != nil {
 							log.Fatal(err)
 						}
@@ -152,15 +203,19 @@ func main() {
 				{
 					Name:      "describe",
 					ArgsUsage: "<NAME>",
-					Usage:     "Describe a scaffold",
+					Usage:     "Describe a project",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
 					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
 						if c.NArg() != 1 {
 							cli.ShowCommandHelp(c, "describe")
 							return errors.New("Invalid number of arguments")
 						}
 						scaffoldName := c.Args().Get(0)
 
-						scaffold, err := repo.GetScaffold(polarisHome, polarisConfig, scaffoldName)
+						scaffold, err := repo.GetProject(polarisHome, polarisConfig, scaffoldName)
 						if err != nil {
 							log.Fatal(err)
 						}
@@ -177,127 +232,159 @@ func main() {
 					},
 				},
 				{
-					Name:      "unpack",
-					ArgsUsage: "<scaffold name> <local name> [--parameters name=value,name2=value2]",
-					Usage:     "Unpack and deploy a scaffold locally",
+					Name:      "new",
+					ArgsUsage: "<local name>",
+					Usage:     "Unpack a project locally",
 					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+						cli.StringFlag{Name: "from", Usage: "From which project upstream (default: core/stable/starter/project)"},
+						cli.BoolFlag{Name: "overwrite", Usage: "Allow overwriting of target files"},
 						cli.StringFlag{Name: "parameters", Usage: "Provide template parameters"},
 					},
 					Action: func(c *cli.Context) error {
-						if c.NArg() != 2 {
-							cli.ShowCommandHelp(c, "unpack")
+						options.SetVerbose(c.Bool("verbose"))
+						if c.NArg() != 1 {
+							cli.ShowCommandHelp(c, "new")
 							return errors.New("Invalid number of arguments")
 						}
 
-						scaffoldName := c.Args().Get(0)
-						localName := c.Args().Get(1)
+						localName := c.Args().Get(0)
 
-						scaffold, err := repo.GetScaffold(polarisHome, polarisConfig, scaffoldName)
+						var parametersOption = c.String("parameters")
+						var parameters = map[string]string{}
+						for _, parameter := range strings.Split(parametersOption, ",") {
+							split := strings.Split(parameter, "=")
+							if len(split) == 2 {
+								parameters[split[0]] = split[1]
+							}
+						}
+
+						var fromOption = c.String("from")
+						if fromOption == "" {
+							fromOption = "core/stable/starter/project"
+						}
+
+						applicationScaffold, err := repo.GetProject(polarisHome, polarisConfig, fromOption)
+						if err != nil {
+							return err
+						}
+						err = scaffold.UnpackProject(applicationScaffold, parameters, localName, c.Bool("overwrite"))
+						if err != nil {
+							return err
+						}
+
+						return nil
+					},
+				},
+				{
+					Name:      "status",
+					ArgsUsage: "<local name>|.",
+					Usage:     "Show status of project",
+					Flags: []cli.Flag{
+						cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
+					},
+					Action: func(c *cli.Context) error {
+						options.SetVerbose(c.Bool("verbose"))
+						return nil
+					},
+				},
+			},
+		},
+		{
+			Name:  "component",
+			Usage: "Component management",
+			Subcommands: []cli.Command{
+				{
+					Name:  "list",
+					Usage: "List components available to scaffold into your project",
+					Action: func(c *cli.Context) error {
+
+						components, err := repo.ListComponents(polarisHome, polarisConfig)
 						if err != nil {
 							log.Fatal(err)
 						}
 
-						// Check whether the local path already exists
-						//
-						localName = path.Clean(localName)
-						if _, err := os.Stat(localName); !os.IsNotExist(err) {
-							return fmt.Errorf("%s already exists", localName)
+						for name, detail := range components {
+							fmt.Println(name, "->", detail.Spec.Description)
 						}
 
-						// Setup the project object for use by the template later
-						//
-						project := config.PolarisScaffoldProject{
-							Name:       localName,
-							Parameters: map[string]string{},
-							Scaffold:   scaffold,
+						return nil
+
+					},
+				},
+				{
+					Name:      "describe",
+					ArgsUsage: "<NAME>",
+					Usage:     "Describe a component",
+					Action: func(c *cli.Context) error {
+						if c.NArg() != 1 {
+							cli.ShowCommandHelp(c, "describe")
+							return errors.New("Invalid number of arguments")
 						}
 
-						// Populate all the scaffold default parameter values first
-						//
-						for _, parameter := range project.Scaffold.Spec.Parameters {
-							project.Parameters[parameter.Name] = parameter.Default
+						return nil
+					},
+				},
+				{
+					Name:      "new",
+					ArgsUsage: "<local name>",
+					Usage:     "Unpack a component locally",
+					Flags: []cli.Flag{
+						cli.StringFlag{Name: "from", Usage: "From which component upstream (default: core/stable/starter/kotlin/microservice)"},
+						cli.BoolFlag{Name: "overwrite", Usage: "Allow overwriting of target files"},
+						cli.StringFlag{Name: "parameters", Usage: "Provide template parameters"},
+					},
+					Action: func(c *cli.Context) error {
+						if c.NArg() != 1 {
+							cli.ShowCommandHelp(c, "new")
+							return errors.New("Invalid number of arguments")
 						}
 
-						// Overwrite them with the ones provided on the command line
-						//
-						var parameters = c.String("parameters")
-						for _, parameter := range strings.Split(parameters, ",") {
+						localName := c.Args().Get(0)
+
+						var parametersOption = c.String("parameters")
+						var parameters = map[string]string{}
+						for _, parameter := range strings.Split(parametersOption, ",") {
 							split := strings.Split(parameter, "=")
 							if len(split) == 2 {
-								if _, contains := project.Parameters[split[0]]; !contains {
-									return fmt.Errorf("Parameter %s provided by not in scaffold spec", split[0])
-								}
-								project.Parameters[split[0]] = split[1]
+								parameters[split[0]] = split[1]
 							}
 						}
 
-						for key, value := range project.Parameters {
-							fmt.Println("Got param", key, "->", value)
+						var fromOption = c.String("from")
+						if fromOption == "" {
+							fromOption = "core/stable/starter/kotlin/microservice"
 						}
 
-						err = filepath.Walk(scaffold.LocalPath, func(filename string, info os.FileInfo, err error) error {
+						// Read the project from the local directory?
+						//
+						project, err := scaffold.GetLocalProject("project")
+						if err != nil {
+							return err
+						}
 
-							// filename -> file from the scaffold
-							// localPath -> file to be written (in the target)
-
-							localPath := fmt.Sprintf("%s%s", localName, strings.Replace(filename, fmt.Sprintf("%s", scaffold.LocalPath), "", 1))
-
-							// localPath could be a templated name, so we must render it
-							//
-							localPathTmpl, err := template.
-								New("PolarisFilenameTemplate").
-								Funcs(template.FuncMap{}).
-								Delims("[[", "]]").
-								Parse(string(localPath))
+						// Read the scaffold from the repo (if we need it?)
+						//
+						/*
+							_, err = repo.GetProject(polarisHome, polarisConfig, project.Scaffold)
 							if err != nil {
-								fmt.Println("Error during template parsing", localPath)
 								return err
 							}
-							var localPathBuff bytes.Buffer
+						*/
 
-							err = localPathTmpl.Execute(&localPathBuff, project)
-							if err != nil {
-								return fmt.Errorf("Error during filename template generation: %s", err)
-							}
+						// Read the component from the repo
+						//
+						componentScaffold, err := repo.GetComponent(polarisHome, polarisConfig, fromOption)
+						if err != nil {
+							return err
+						}
 
-							// Set the name to whatever the template rendered
-							//
-							localPath = localPathBuff.String()
+						err = scaffold.UnpackComponent(componentScaffold, project, parameters, fromOption, localName, c.Bool("overwrite"))
+						if err != nil {
+							return err
+						}
 
-							if info.IsDir() {
-								os.Mkdir(localPath, os.ModePerm)
-								fmt.Println("Created directory", localPath)
-							} else {
-
-								fileContents, err := ioutil.ReadFile(filename)
-								if err != nil {
-									return err
-								}
-
-								tmpl, err := template.
-									New("PolarisScaffoldTemplate").
-									Funcs(template.FuncMap{}).
-									Delims("[[", "]]").
-									Parse(string(fileContents))
-								if err != nil {
-									fmt.Println("Error during template parsing", localPath)
-									return err
-								}
-								var buff bytes.Buffer
-
-								err = tmpl.Execute(&buff, project)
-								if err != nil {
-									return fmt.Errorf("Error during template generation: %s", err)
-								}
-
-								ioutil.WriteFile(localPath, buff.Bytes(), 0644)
-								fmt.Println("Wrote file", filename, localPath)
-							}
-
-							return nil
-						})
-
-						return err
+						return nil
 					},
 				},
 			},

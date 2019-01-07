@@ -2,17 +2,12 @@ package repo
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/synthesis-labs/polaris-cli/src/config"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	yaml "gopkg.in/yaml.v2"
 )
 
 // SynchronizeRepositories synchronizes repositories to local /.polaris folder
@@ -108,65 +103,4 @@ func NeedSynchronizeRepositories(polarisHome string, polarisConfig *config.Polar
 
 	sinceLastSync := time.Since(fileinfo.ModTime())
 	return sinceLastSync > 24*time.Hour, nil
-}
-
-// ListScaffolds returns the list of available scaffolds in all repositories
-//
-func ListScaffolds(polarisHome string, polarisConfig *config.PolarisConfig, matchingNames ...string) (map[string]*config.PolarisScaffold, error) {
-
-	reposHome := path.Clean(fmt.Sprintf("%s/repos", polarisHome))
-
-	result := map[string]*config.PolarisScaffold{}
-
-	err := filepath.Walk(reposHome, func(filename string, info os.FileInfo, err error) error {
-		filebase := path.Base(filename)
-		if filebase == "scaffold.yaml" {
-			scaffoldName := strings.Replace(strings.Replace(filename, fmt.Sprintf("%s/", reposHome), "", 1), "/scaffold.yaml", "", 1)
-
-			scaffoldData, err := ioutil.ReadFile(filename)
-			if err != nil {
-				return err
-			}
-
-			scaffold := config.PolarisScaffold{}
-			err = yaml.Unmarshal(scaffoldData, &scaffold.Spec)
-			if err != nil {
-				return err
-			}
-
-			scaffold.LocalPath = path.Dir(filename)
-			found := len(matchingNames) == 0
-			for _, matching := range matchingNames {
-				if matching == scaffoldName {
-					found = true
-				}
-			}
-			if found {
-				result[scaffoldName] = &scaffold
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-// GetScaffold returns a particular scaffold
-//
-func GetScaffold(polarisHome string, polarisConfig *config.PolarisConfig, scaffoldName string) (*config.PolarisScaffold, error) {
-	scaffolds, err := ListScaffolds(polarisHome, polarisConfig, scaffoldName)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(scaffolds) != 1 {
-		return nil, fmt.Errorf("Unable to find scaffold with name %s", scaffoldName)
-	}
-
-	return scaffolds[scaffoldName], nil
 }

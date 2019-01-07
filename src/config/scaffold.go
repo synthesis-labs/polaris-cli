@@ -19,13 +19,25 @@ type PolarisScaffoldSpec struct {
 //
 type PolarisScaffold struct {
 	Spec      PolarisScaffoldSpec
+	Name      string
 	LocalPath string
 }
 
-// PolarisScaffoldProject defines a scaffold project
+// PolarisProject defines the structure for ./polaris-project.yaml within a local project
 //
-type PolarisScaffoldProject struct {
-	Name       string
+type PolarisProject struct {
+	Project    string
 	Parameters map[string]string
-	Scaffold   *PolarisScaffold
+	Scaffold   string
+}
+
+// PolarisComponent for generating a Component within a project
+//
+type PolarisComponent struct {
+	Project           string
+	Component         string
+	Parameters        map[string]string
+	ProjectParameters map[string]string
+	ProjectScaffold   string
+	ComponentScaffold string
 }
