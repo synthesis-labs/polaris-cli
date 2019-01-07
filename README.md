@@ -14,18 +14,42 @@ A scaffold is a set of templates that is used to bootstrap a micro-service app t
 
 A repository (or repo) is used to easily manage and source scaffolds. You can use the [Official Polaris Scaffold Repo](https://github.com/synthesis-labs/polaris-scaffolds), use a third party repo or create your own.
 
+## Projects
+
+A project is scaffold that has been unpacked into a local directory ready to be deployed into a cluster.
+
 # Commands
 
-## Polaris Scaffold
+## Polaris Init
 
-The following commands are used to interact with scaffolds.
+Installs the polaris operator to the cluster.
+
+```
+polaris init [--namespace] [--verbose]
+```
+
+Flags:
+```
+--namespace - The cluster namespace in which the polaris operator should be installed. (Uses the default
+              configured namespace if not specified)
+--verbose - Enable verbose output
+```
+
+## Polaris Project
+
+The following commands are used to manage projects.
 
 ### List
 
-Lists available scaffolds in all added repositories.
+Lists available scaffolds to create projects from.
 
 ```
-polaris scaffold list
+polaris project list [--verbose]
+```
+
+Flags:
+```
+--verbose - Enable verbose output
 ```
 
 ### Describe
@@ -33,7 +57,7 @@ polaris scaffold list
 Provides a description for the named scaffold.
 
 ```
-polaris scaffold describe <name>
+polaris project describe <name> [--verbose]
 ```
 
 Arguments:
@@ -41,22 +65,73 @@ Arguments:
 name (required) - The name of the scaffold
 ```
 
-### Unpack
+Flags:
+```
+--verbose - Enable verbose output
+```
 
-Unpacks and deploys a scaffold locally.
+### New
+
+Unpacks a scaffold into a local project.
 
 ```
-polaris scaffold unpack <scaffold name> <local name> [--parameters]
+polaris project new <local name> [--from] [--overwrite] [--parameters] [--verbose]
 ```
 
 Arguments:
 ```
-scaffold name (required) - The name of the scaffold
 local name (required) - the desired name/path of the local unpacked scaffold
---parameters - parameters used to populate the scaffold template
 ```
 
-## Polaris Scaffold Repo
+Flags:
+```
+--from - From which scaffold upstream (defaults to core/stable/starter/project)
+--overwrite - Allow overwriting of target files
+--parameters - parameters used to populate the scaffold template
+--verbose - Enable verbose output
+```
+
+### Status
+
+*WIP*
+
+## Polaris Component
+
+The following commands are used to manage components.
+
+### List
+
+List available components to scaffold into a project
+
+```
+polaris component list
+```
+
+### New
+
+Unpack a component into a local project
+
+```
+polaris component new <local name> [--from] [--overwrite] [--parameters]
+```
+
+Arguments:
+```
+local name (required) -- the desired name/path of the local unpacked component
+```
+
+Flags:
+```
+--from - From which component upstream (defaults to core/stable/starter/kotlin/microservice)
+--overwrite - Allow overwriting of target files
+--parameters - parameters used to populate the component template
+```
+
+### Describe
+
+*WIP*
+
+## Polaris Repo
 
 These commands are used to interact with repositories containing scaffolds.
 
@@ -65,7 +140,7 @@ These commands are used to interact with repositories containing scaffolds.
 Add the specified repo to the local repo list.
 
 ```
-polaris scaffold repo add <name> <url> <ref>
+polaris repo add <name> <url> <ref> [--verbose]
 ```
 
 Arguments:
@@ -75,12 +150,22 @@ url (required) - the git URL of the repository
 ref (required) - the desired git commit reference (branch) of the repository
 ```
 
+Flags:
+```
+--verbose - Enable verbose output
+```
+
 ### List
 
 Lists all added repositories.
 
 ```
-polaris scaffold repo list
+polaris repo list [--verbose]
+```
+
+Flags:
+```
+--verbose - Enable verbose output
 ```
 
 ### Remove
@@ -88,7 +173,7 @@ polaris scaffold repo list
 Removes the specified repository if it has been added.
 
 ```
-polaris scaffold repo remove <name>
+polaris repo remove <name> [--verbose]
 ```
 
 Arguments:
@@ -96,15 +181,21 @@ Arguments:
 name (required) - the name of the repository to be removed
 ```
 
+Flags:
+```
+--verbose - Enable verbose output
+```
+
 ### Update
 
 Performs an update on all added repositories.
 
 ```
-polaris scaffold repo update
+polaris repo update [--verbose]
 ```
 
-Arguments:
+Flags:
 ```
 --force - forces a full refresh (delete and re-download) of all added repositories
+--verbose - Enable verbose output
 ```
