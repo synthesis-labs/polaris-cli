@@ -3,7 +3,7 @@ package status
 import (
 	"fmt"
 
-	polarisv1alpha1 "github.com/synthesis-labs/polaris-operator/pkg/client/clientset/versioned"
+	polarisv1alpha1 "github.com/synthesis-labs/polaris-client/pkg/client/clientset/versioned"
 	apiextension "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

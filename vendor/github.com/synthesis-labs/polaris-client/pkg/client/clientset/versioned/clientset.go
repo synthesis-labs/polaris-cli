@@ -19,7 +19,7 @@ limitations under the License.
 package versioned
 
 import (
-	polarisv1alpha1 "github.com/synthesis-labs/polaris-operator/pkg/client/clientset/versioned/typed/polaris/v1alpha1"
+	polarisv1alpha1 "github.com/synthesis-labs/polaris-client/pkg/client/clientset/versioned/typed/polaris/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

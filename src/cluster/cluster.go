@@ -8,7 +8,7 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
-	polarisv1alpha1 "github.com/synthesis-labs/polaris-operator/pkg/client/clientset/versioned"
+	polarisv1alpha1 "github.com/synthesis-labs/polaris-client/pkg/client/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"

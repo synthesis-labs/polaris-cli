@@ -177,12 +177,12 @@
   version = "v2.0.1"
 
 [[projects]]
-  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
   name = "github.com/pkg/errors"
   packages = ["."]
   pruneopts = "UT"
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
 
 [[projects]]
   digest = "1:d917313f309bda80d27274d53985bc65651f81a5b66b820749ac7f8ef061fd04"
@@ -215,17 +215,26 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f931e42faadef4c4f6eab968147aba9c4cbc1c6d5eb939f8a7831d0f5b492016"
-  name = "github.com/synthesis-labs/polaris-operator"
+  digest = "1:d8e407aa481a96ef02f066a7837ef70a2a6837ad98f971a66ae119bc3cb0d7ad"
+  name = "github.com/synthesis-labs/polaris-client"
   packages = [
-    "pkg/apis",
-    "pkg/apis/polaris/v1alpha1",
     "pkg/client/clientset/versioned",
     "pkg/client/clientset/versioned/scheme",
     "pkg/client/clientset/versioned/typed/polaris/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "6a97c7e4fd9f431232a76f5dddfd8870bc55c9e0"
+  revision = "7ad6afc327de1d8c5377f26311cc3d70d5d5a941"
+
+[[projects]]
+  branch = "master"
+  digest = "1:a3855b30b4fc285079383c7367fb977b22be1a11055d70c3b69d783a124bd8fc"
+  name = "github.com/synthesis-labs/polaris-operator"
+  packages = [
+    "pkg/apis",
+    "pkg/apis/polaris/v1alpha1",
+  ]
+  pruneopts = "UT"
+  revision = "05197b6cc72800653dd65c93935dd58da952e0a2"
 
 [[projects]]
   digest = "1:b24d38b282bacf9791408a080f606370efa3d364e4b5fd9ba0f7b87786d3b679"
@@ -267,7 +276,7 @@
     "ssh/terminal",
   ]
   pruneopts = "UT"
-  revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
+  revision = "ff983b9c42bc9fbf91556e191cc8efb585c16908"
 
 [[projects]]
   branch = "master"
@@ -282,7 +291,7 @@
     "idna",
   ]
   pruneopts = "UT"
-  revision = "927f97764cc334a6575f4b7a1584a147864d5723"
+  revision = "1e06a53dbb7e2ed46e91183f219db23c6943c532"
 
 [[projects]]
   branch = "master"
@@ -297,14 +306,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3d5e79e10549fd9119cbefd614b6d351ef5bd0be2f2b103a4199788e784cbc68"
+  digest = "1:12ef3ef293a3a3930a82e5f38a3c45a1b03a9ed72dedc192d90e89d59b1f13a5"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "b4a75ba826a64a70990f11a225237acd6ef35c9f"
+  revision = "7fbe1cd0fcc20051e1fcb87fbabec4a1bacaaeba"
 
 [[projects]]
   digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
@@ -493,7 +502,7 @@
     "pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "7f0e3c78365f6feb94a923557976d4a305de441b"
+  revision = "e7617803acebe420667bef11e88bb17f0f3a57d3"
 
 [[projects]]
   digest = "1:0ed26acd86e249e3b24fe3770defdb389bf812f7f3f887f94adb4d46e9542481"
@@ -626,7 +635,7 @@
   input-imports = [
     "github.com/mitchellh/go-homedir",
     "github.com/pkg/errors",
-    "github.com/synthesis-labs/polaris-operator/pkg/client/clientset/versioned",
+    "github.com/synthesis-labs/polaris-client/pkg/client/clientset/versioned",
     "github.com/urfave/cli",
     "gopkg.in/src-d/go-git.v4",
     "gopkg.in/src-d/go-git.v4/plumbing",
