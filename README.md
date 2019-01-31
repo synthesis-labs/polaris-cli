@@ -4,6 +4,56 @@
 
 The Polaris CLI is a tool designed to make it easier for developers to scaffold and deploy micro-services on a Kubernetes cluster. The Polaris CLI works best with the [Polaris](https://github.com/synthesis-labs/polaris) stack and [other Polaris tools](https://github.com/synthesis-labs?utf8=%E2%9C%93&q=polaris&type=&language=).
 
+# Getting Started
+
+```sh
+$ polaris init
+$ polaris project new my-awesome-project
+$ cd my-awesome-project
+$ polaris component new my-awesome-microservice --from core/stable/starter/kotlin/microservice
+```
+
+Output:
+
+```sh
+├── chart
+│   └── my-awesome-project
+│       ├── charts
+│       │   └── my-awesome-microservice
+│       │       ├── Chart.yaml
+│       │       ├── templates
+│       │       │   ├── build-step.yaml
+│       │       │   ├── container-registry.yaml
+│       │       │   ├── deployment.yaml
+│       │       │   ├── _helpers.tpl
+│       │       │   ├── ingress.yaml
+│       │       │   └── service.yaml
+│       │       └── values.yaml
+│       ├── Chart.yaml
+│       ├── templates
+│       │   ├── build-pipeline.yaml
+│       │   ├── _helpers.tpl
+│       │   ├── NOTES.txt
+│       │   └── source-repo.yaml
+│       └── values.yaml
+├── images
+│   └── my-awesome-microservice
+│       ├── build.gradle
+│       ├── Dockerfile
+│       ├── gradlew
+│       ├── gradlew.bat
+│       ├── settings.gradle
+│       └── src
+│           └── main
+│               ├── kotlin
+│               │   └── my-awesome-microservice
+│               │       ├── Application.kt
+│               │       └── ComponentController.kt
+│               └── resources
+│                   └── log4j2.xml
+└── polaris-project.yaml
+```
+
 # Concepts
 
 ## Scaffolds
