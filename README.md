@@ -2,7 +2,9 @@
 
 *Polaris development currently in **pre-release***
 
-The Polaris CLI is a tool designed to make it easier for developers to scaffold and deploy micro-services on a Kubernetes cluster. The Polaris CLI works best with the [Polaris](https://github.com/synthesis-labs/polaris) stack and [other Polaris tools](https://github.com/synthesis-labs?utf8=%E2%9C%93&q=polaris&type=&language=).
+The Polaris CLI is a tool designed to make it easier for developers to scaffold and deploy micro-services on a Kubernetes cluster. The Polaris CLI works best with the [Polaris](https://github.com/synthesis-labs/polaris) stack and [other Polaris tools](https://github.com/synthesis-labs?utf8=%E2%9C%93&q=polaris&type=&language=). 
+
+Download the pre-release [here](https://github.com/synthesis-labs/polaris-cli/releases)
 
 # Concepts
 
