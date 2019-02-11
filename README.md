@@ -6,20 +6,22 @@ The Polaris CLI is a tool designed to make it easier for developers to scaffold 
 
 # Getting Started
 
+## 1. Scaffold your project
+
 ```sh
 $ polaris init
-$ polaris project new my-awesome-project
-$ cd my-awesome-project
-$ polaris component new my-awesome-microservice --from core/stable/starter/kotlin/microservice
+$ polaris project new myproject --parameters cluster_name=p1.s7s.cloud
+$ cd myproject
+$ polaris component new myservice --from core/stable/starter/nodejs/typescript-microservice
 ```
 
 Output:
 
 ```sh
 ├── chart
-│   └── my-awesome-project
+│   └── myproject
 │       ├── charts
-│       │   └── my-awesome-microservice
+│       │   └── myservice
 │       │       ├── Chart.yaml
 │       │       ├── templates
 │       │       │   ├── build-step.yaml
@@ -37,22 +39,29 @@ Output:
 │       │   └── source-repo.yaml
 │       └── values.yaml
 ├── images
-│   └── my-awesome-microservice
-│       ├── build.gradle
+│   └── myservice
 │       ├── Dockerfile
-│       ├── gradlew
-│       ├── gradlew.bat
-│       ├── settings.gradle
 │       └── src
-│           └── main
-│               ├── kotlin
-│               │   └── my-awesome-microservice
-│               │       ├── Application.kt
-│               │       └── ComponentController.kt
-│               └── resources
-│                   └── log4j2.xml
 └── polaris-project.yaml
 ```
+
+- **polaris-project.yaml**: TODO: Explain
+- **chart**: TODO: Explain
+- **images**: TODO: Explain
+
+## 2. Install to your cluster with helm
+
+```sh
+$ helm install --name myproject chart/myproject/
+
+$ git init # Assuming you don't have a git repo already
+$ git remote add cluster https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/myproject
+$ git add -A
+$ git commit -m 'first commit'
+$ git push cluster master # Assuming aws cli credentials have been setup
+```
+
+Give AWS CodePipeline some time to build your images
 
 # Concepts
 
@@ -71,6 +80,8 @@ A project is scaffold that has been unpacked into a local directory ready to be 
 # Commands
 
 ## Polaris Init
+
+![docs/polaris-init.png](docs/polaris-init.png)
 
 Installs the polaris operator to the cluster.
 
