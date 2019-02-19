@@ -252,15 +252,7 @@ func EnsureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	fmt.Print("CustomResourceDefinition (polarisstacks.polaris.synthesis.co.za) Creating... ")
 	_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisStackCrd)
 	if k8serrors.IsAlreadyExists(err) {
-		fmt.Print("Deleting... ")
-		err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete("polarisstacks.polaris.synthesis.co.za", &metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-		fmt.Print("Waiting... ")
-		time.Sleep(2 * time.Second)
-		fmt.Print("Creating... ")
-		_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisStackCrd)
+		fmt.Print("Already Exists... ")	
 	}
 	if err != nil {
 		return err
@@ -296,15 +288,7 @@ func EnsureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	fmt.Print("CustomResourceDefinition (polarissourcerepositories.polaris.synthesis.co.za) Creating... ")
 	_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisSourceRepositoryCrd)
 	if k8serrors.IsAlreadyExists(err) {
-		fmt.Print("Deleting... ")
-		err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete("polarissourcerepositories.polaris.synthesis.co.za", &metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-		fmt.Print("Waiting... ")
-		time.Sleep(2 * time.Second)
-		fmt.Print("Creating... ")
-		_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisSourceRepositoryCrd)
+		fmt.Print("Already Exists... ")	
 	}
 	if err != nil {
 		return err
@@ -340,15 +324,7 @@ func EnsureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	fmt.Print("CustomResourceDefinition (polariscontainerregistries.polaris.synthesis.co.za) Creating... ")
 	_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisContainerRegistryCrd)
 	if k8serrors.IsAlreadyExists(err) {
-		fmt.Print("Deleting... ")
-		err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete("polariscontainerregistries.polaris.synthesis.co.za", &metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-		fmt.Print("Waiting... ")
-		time.Sleep(2 * time.Second)
-		fmt.Print("Creating... ")
-		_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisContainerRegistryCrd)
+		fmt.Print("Already Exists... ")	
 	}
 	if err != nil {
 		return err
@@ -384,15 +360,7 @@ func EnsureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	fmt.Print("CustomResourceDefinition (polarisbuildpipelines.polaris.synthesis.co.za) Creating... ")
 	_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisBuildPipelineCrd)
 	if k8serrors.IsAlreadyExists(err) {
-		fmt.Print("Deleting... ")
-		err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete("polarisbuildpipelines.polaris.synthesis.co.za", &metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-		fmt.Print("Waiting... ")
-		time.Sleep(2 * time.Second)
-		fmt.Print("Creating... ")
-		_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisBuildPipelineCrd)
+		fmt.Print("Already Exists... ")	
 	}
 	if err != nil {
 		return err
@@ -428,15 +396,7 @@ func EnsureOperatorInstalled(client *kubernetes.Clientset, apiextensionClient *a
 	fmt.Print("CustomResourceDefinition (polarisbuildsteps.polaris.synthesis.co.za) Creating... ")
 	_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisBuildStepCrd)
 	if k8serrors.IsAlreadyExists(err) {
-		fmt.Print("Deleting... ")
-		err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete("polarisbuildsteps.polaris.synthesis.co.za", &metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-		fmt.Print("Waiting... ")
-		time.Sleep(2 * time.Second)
-		fmt.Print("Creating... ")
-		_, err = apiextensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(polarisBuildStepCrd)
+		fmt.Print("Already Exists... ")	
 	}
 	if err != nil {
 		return err
