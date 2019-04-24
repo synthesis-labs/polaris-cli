@@ -36,6 +36,10 @@ func main() {
 	}
 
 	app := cli.NewApp()
+	app.Name = "Polaris"
+	app.Usage = "scaffold polaris projects and components"
+	app.Version = "0.0.2"
+
 	app.Commands = []cli.Command{
 		{
 			Name:      "init",
