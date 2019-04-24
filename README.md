@@ -47,9 +47,9 @@ Output:
 └── polaris-project.yaml
 ```
 
-- **polaris-project.yaml**: TODO: Explain
-- **chart**: TODO: Explain
-- **images**: TODO: Explain
+- **polaris-project.yaml**: The base configuration file of your polaris porject
+- **chart**: A helm chart to install your polaris project
+- **images**: The docker images of your polaris project
 
 ## 2. Install to your cluster with helm
 

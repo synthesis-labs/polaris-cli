@@ -48,12 +48,14 @@ func main() {
 			Flags: []cli.Flag{
 				cli.BoolFlag{Name: "verbose", Usage: "Verbose output"},
 				cli.StringFlag{Name: "namespace", Usage: "Namespace to use"},
+				cli.BoolFlag{Name: "force", Usage: "Force delete / re-create resources"},
 				cli.StringFlag{Name: "AWS_ACCESS_KEY_ID", Usage: "Specify AWS_ACCESS_KEY_ID to the operator"},
 				cli.StringFlag{Name: "AWS_SECRET_ACCESS_KEY", Usage: "Specify AWS_SECRET_ACCESS_KEY to the operator"},
 				cli.StringFlag{Name: "AWS_SESSION_TOKEN", Usage: "Specify AWS_SESSION_TOKEN to the operator"},
 			},
 			Action: func(c *cli.Context) error {
 				options.SetVerbose(c.Bool("verbose"))
+				options.SetForce(c.Bool("force"))
 
 				// Connect
 				//
@@ -83,7 +85,7 @@ func main() {
 
 				// Ensure the polaris-operator is installed
 				//
-				err = cluster.EnsureOperatorInstalled(client, apiextensionClient, ns, environmentVariables)
+				err = cluster.EnsureOperatorInstalled(client, apiextensionClient, ns, environmentVariables, options.IsForce())
 				if err != nil {
 					return err
 				}
