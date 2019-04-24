@@ -6,6 +6,65 @@ The Polaris CLI is a tool designed to make it easier for developers to scaffold 
 
 Download the pre-release [here](https://github.com/synthesis-labs/polaris-cli/releases)
 
+# Getting Started
+
+## 1. Scaffold your project
+
+```sh
+$ polaris init
+$ polaris project new myproject --parameters cluster_name=p1.s7s.cloud
+$ cd myproject
+$ polaris component new myservice --from core/stable/starter/nodejs/typescript-microservice
+```
+
+Output:
+
+```sh
+├── chart
+│   └── myproject
+│       ├── charts
+│       │   └── myservice
+│       │       ├── Chart.yaml
+│       │       ├── templates
+│       │       │   ├── build-step.yaml
+│       │       │   ├── container-registry.yaml
+│       │       │   ├── deployment.yaml
+│       │       │   ├── _helpers.tpl
+│       │       │   ├── ingress.yaml
+│       │       │   └── service.yaml
+│       │       └── values.yaml
+│       ├── Chart.yaml
+│       ├── templates
+│       │   ├── build-pipeline.yaml
+│       │   ├── _helpers.tpl
+│       │   ├── NOTES.txt
+│       │   └── source-repo.yaml
+│       └── values.yaml
+├── images
+│   └── myservice
+│       ├── Dockerfile
+│       └── src
+└── polaris-project.yaml
+```
+
+- **polaris-project.yaml**: TODO: Explain
+- **chart**: TODO: Explain
+- **images**: TODO: Explain
+
+## 2. Install to your cluster with helm
+
+```sh
+$ helm install --name myproject chart/myproject/
+
+$ git init # Assuming you don't have a git repo already
+$ git remote add cluster https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/myproject
+$ git add -A
+$ git commit -m 'first commit'
+$ git push cluster master # Assuming aws cli credentials have been setup
+```
+
+Give AWS CodePipeline some time to build your images
+
 # Concepts
 
 ## Scaffolds
@@ -23,6 +82,8 @@ A project is scaffold that has been unpacked into a local directory ready to be 
 # Commands
 
 ## Polaris Init
+
+![docs/polaris-init.png](docs/polaris-init.png)
 
 Installs the polaris operator to the cluster.
 
