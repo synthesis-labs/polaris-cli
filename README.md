@@ -262,3 +262,9 @@ Flags:
 --force - forces a full refresh (delete and re-download) of all added repositories
 --verbose - Enable verbose output
 ```
+
+# Development & Testing
+
+```sh
+$ go build -o bin/polaris src/main.go
+```

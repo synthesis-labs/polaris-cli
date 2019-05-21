@@ -86,20 +86,24 @@ func unpackScaffold(polarisType string, scaffold *config.PolarisScaffold, scaffo
 				return err
 			}
 
-			tmpl, err := template.
-				New(fmt.Sprintf("PolarisScaffoldTemplate:%s", sourcePath)).
-				Funcs(template.FuncMap{}).
-				Delims("[[", "]]").
-				Parse(string(sourceContents))
-			if err != nil {
-				fmt.Println("Error during template parsing", localPath)
-				return err
-			}
 			var buff bytes.Buffer
+			if !shouldExcludeFile(sourcePath) {
+				tmpl, err := template.
+					New(fmt.Sprintf("PolarisScaffoldTemplate:%s", sourcePath)).
+					Funcs(template.FuncMap{}).
+					Delims("[[", "]]").
+					Parse(string(sourceContents))
+				if err != nil {
+					fmt.Println("Error during template parsing", localPath)
+					return err
+				}
 
-			err = tmpl.Execute(&buff, scaffoldValues)
-			if err != nil {
-				return fmt.Errorf("Error during template generation: %s", err)
+				err = tmpl.Execute(&buff, scaffoldValues)
+				if err != nil {
+					return fmt.Errorf("Error during template generation: %s", err)
+				}
+			} else {
+				buff.Write(sourceContents)
 			}
 
 			if _, err := os.Stat(targetPath); !os.IsNotExist(err) && !overwrite {
@@ -240,4 +244,17 @@ func UnpackComponent(componentScaffold *config.PolarisScaffold, project *config.
 
 	err := unpackScaffold("", componentScaffold, &component, ".", overwrite)
 	return err
+}
+
+func shouldExcludeFile(filePath string) bool {
+	// Files to be excluded from templatizing
+	//
+	var excludedFiles = []string{".jar"}
+
+	for _, exclude := range excludedFiles {
+		if strings.Contains(filePath, exclude) {
+			return true
+		}
+	}
+	return false
 }
